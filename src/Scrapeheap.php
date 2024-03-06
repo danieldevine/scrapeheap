@@ -26,8 +26,7 @@ class Scrapeheap
                 new Overrides(startUrls: [$target_url]),
                 context: ['base_domain' => $base_domain],
             );
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             echo 'Caught exception: ', $e->getMessage(), "\n";
         }
 
