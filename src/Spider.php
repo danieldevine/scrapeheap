@@ -4,6 +4,7 @@ namespace Coderjerk\Scrapeheap;
 
 use RoachPHP\Http\Response;
 use RoachPHP\Spider\BasicSpider;
+use Coderjerk\Scrapeheap\Cleaner;
 use Coderjerk\Scrapeheap\Document;
 
 class Spider extends BasicSpider
@@ -90,29 +91,31 @@ class Spider extends BasicSpider
      */
     public function parsePage(Response $response): \Generator
     {
-
-        $title = 'default';
-        $content = 'default';
-
         $current_uri = $response->getUri();
 
-        if ($response->filter('title')->count() > 0) {
+        $title = $response->filter('title')->count() ? $response->filter('title')->text() : 'Untitled';
 
-            $title = $response->filter('title')->text();
+        // Prefer main/article content; fall back to body
+        $node = null;
+        if ($response->filter('main')->count()) {
+            $node = $response->filter('main')->first();
+        } elseif ($response->filter('article')->count()) {
+            $node = $response->filter('article')->first();
+        } elseif ($response->filter('body')->count()) {
+            $node = $response->filter('body')->first();
         }
 
-        if ($response->filter('body')->count() > 0) {
+        $html = $node ? $node->html() : '<p>(No content extracted)</p>';
 
-            $content = $response
-                ->filter('body')
-                ->text();
-        }
+        $html = preg_replace('#<(script|style|nav|footer)[^>]*>.*?</\1>#si', '', $html);
 
-        Document::make($current_uri, $title, $content);
+        $clean_text = Cleaner::htmlToCleanText($html);
+
+        Document::make($current_uri, $title, $clean_text);
 
         yield $this->item([
             'title' => $title,
-            'content' => $content,
+            'content' => $html,
             'uri' => $current_uri
         ]);
 

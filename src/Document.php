@@ -6,10 +6,11 @@ use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Settings;
 
+
 class Document
 {
     /**
-     * Creates anf Formats an MS Word document.
+     * Creates and sort of Formats an MS Word document.
      *
      * @param string $target_url
      * @param string $title
@@ -21,6 +22,7 @@ class Document
         $phpWord = new PhpWord;
 
         Settings::setOutputEscapingEnabled(true);
+        Settings::setZipClass('PclZip');
 
         $phpWord->addTitleStyle(
             1,
@@ -38,7 +40,18 @@ class Document
         // Two text break
         $section->addTextBreak(2);
 
-        $section->addText($content);
+        $textlines = explode("\n", $content);
+
+        $textrun = $section->addTextRun();
+
+        $textrun->addText(array_shift($textlines));
+
+        foreach ($textlines as $line) {
+            $textrun->addTextBreak();
+            $textrun->addText($line);
+        }
+
+        // $section->addTextRun($content);
 
         $section->addTextBreak(4);
 
@@ -54,8 +67,7 @@ class Document
             mkdir($path, 0755, true);
         }
 
-        $objWriter = IOFactory::createWriter($phpWord, 'HTML');
-
+        $objWriter = IOFactory::createWriter($phpWord, 'Word2007');
         $objWriter->save("{$path}{$title}.docx");
     }
 }
